@@ -23,7 +23,7 @@ jobs:
       - name: Install Android SDK (cmdline-tools) + accept licenses
         shell: bash
         run: |
-          set -eux
+          set -ux  # don't exit on nonzero; just print commands
           sudo apt-get update
           sudo apt-get install -y unzip curl
 
@@ -44,12 +44,12 @@ jobs:
 
           # Avoid warnings and refresh SDK index
           mkdir -p ~/.android && touch ~/.android/repositories.cfg
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --update
 
-          # Accept licenses and install required packages
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
+          # Refresh index / accept licenses / install packages (ignore SIGPIPE exit)
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --update        || true
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses      || true
           yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
-                "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+                "platforms;android-35" "build-tools;35.0.0" "platform-tools"           || true
 
       # Build the debug APK using Gradle 8.7 (provided by the action)
       - name: Build debug APK
@@ -58,6 +58,7 @@ jobs:
           gradle-version: 8.7
           arguments: assembleDebug
 
+      # Upload the built APK so you can download it
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
